@@ -19,11 +19,12 @@ CREATE TABLE IF NOT EXISTS applications (
   email TEXT,
   number TEXT,
   position TEXT,
+  address TEXT,
   status TEXT DEFAULT 'Pending'
 )
 `);
 
-// ADMIN LOGIN
+// LOGIN
 app.post("/login", (req, res) => {
   const { email, password } = req.body;
 
@@ -43,26 +44,24 @@ function auth(req, res, next) {
   const token = req.headers.authorization;
   if (!token) return res.status(403).json({ error: "No token" });
 
-  try {
-    jwt.verify(token, SECRET);
+  jwt.verify(token, SECRET, (err) => {
+    if (err) return res.status(403).json({ error: "Invalid token" });
     next();
-  } catch {
-    res.status(403).json({ error: "Invalid token" });
-  }
+  });
 }
 
-// SUBMIT APPLICATION
+// SUBMIT
 app.post("/applications", (req, res) => {
-  const { name, email, number, position } = req.body;
+  const { name, email, number, position, address } = req.body;
 
   db.run(
-    "INSERT INTO applications (name, email, number, position) VALUES (?, ?, ?, ?)",
-    [name, email, number, position],
+    "INSERT INTO applications (name,email,number,position,address) VALUES (?,?,?,?,?)",
+    [name, email, number, position, address],
     () => res.json({ success: true })
   );
 });
 
-// GET ALL
+// GET
 app.get("/applications", auth, (req, res) => {
   db.all("SELECT * FROM applications", (err, rows) => {
     res.json(rows);
@@ -71,11 +70,9 @@ app.get("/applications", auth, (req, res) => {
 
 // UPDATE STATUS
 app.put("/applications/:id/status", auth, (req, res) => {
-  const { status } = req.body;
-
   db.run(
     "UPDATE applications SET status=? WHERE id=?",
-    [status, req.params.id],
+    [req.body.status, req.params.id],
     () => res.json({ success: true })
   );
 });
