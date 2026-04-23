@@ -7,7 +7,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const SECRET = "comcast_secret";
+const SECRET = "comcast_secret_key";
 
 // DATABASE
 const db = new sqlite3.Database("./hr.db");
@@ -39,7 +39,7 @@ app.post("/login", (req, res) => {
   res.status(401).json({ error: "Wrong credentials" });
 });
 
-// AUTH
+// AUTH MIDDLEWARE
 function auth(req, res, next) {
   const token = req.headers.authorization;
   if (!token) return res.status(403).json({ error: "No token" });
@@ -50,7 +50,7 @@ function auth(req, res, next) {
   });
 }
 
-// SUBMIT
+// APPLY JOB
 app.post("/applications", (req, res) => {
   const { name, email, number, position, address } = req.body;
 
@@ -61,7 +61,7 @@ app.post("/applications", (req, res) => {
   );
 });
 
-// GET
+// GET ALL APPLICATIONS
 app.get("/applications", auth, (req, res) => {
   db.all("SELECT * FROM applications", (err, rows) => {
     res.json(rows);
@@ -86,4 +86,4 @@ app.delete("/applications/:id", auth, (req, res) => {
   );
 });
 
-app.listen(3000, () => console.log("Server running"));
+app.listen(3000, () => console.log("Server running on port 3000"));
