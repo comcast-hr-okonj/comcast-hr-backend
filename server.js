@@ -5,6 +5,7 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
 const app = express();
+
 app.use(cors());
 app.use(express.json());
 
@@ -35,7 +36,7 @@ CREATE TABLE IF NOT EXISTS applications (
 )
 `);
 
-// CREATE ADMIN (YOUR LOGIN)
+// CREATE ADMIN USER
 const createAdmin = async () => {
   const hash = await bcrypt.hash("09015159496", 10);
 
@@ -66,12 +67,19 @@ app.post("/login", (req, res) => {
   });
 });
 
-// AUTH
+// AUTH MIDDLEWARE (FIXED)
 function auth(req, res, next) {
-  const token = req.headers.authorization;
+  const header = req.headers.authorization;
+
+  if (!header) {
+    return res.status(401).json({ error: "No token provided" });
+  }
+
+  const token = header.split(" ")[1]; // ✅ FIX HERE
 
   try {
-    jwt.verify(token, SECRET);
+    const verified = jwt.verify(token, SECRET);
+    req.user = verified;
     next();
   } catch {
     res.status(401).json({ error: "Unauthorized" });
@@ -85,11 +93,13 @@ app.post("/applications", (req, res) => {
   db.run(
     "INSERT INTO applications (name,email,number,position,status) VALUES (?,?,?,?,?)",
     [name, email, number, position, "Pending"],
-    () => res.json({ success: true })
+    function () {
+      res.json({ success: true });
+    }
   );
 });
 
-// GET ALL (ADMIN ONLY)
+// GET APPLICATIONS (ADMIN ONLY)
 app.get("/applications", auth, (req, res) => {
   db.all("SELECT * FROM applications ORDER BY id DESC", (err, rows) => {
     res.json(rows);
@@ -97,6 +107,8 @@ app.get("/applications", auth, (req, res) => {
 });
 
 // START SERVER
-app.listen(3000, () => {
-  console.log("🚀 HR Server running on http://localhost:3000");
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, () => {
+  console.log(`🚀 HR Server running on port ${PORT}`);
 });
